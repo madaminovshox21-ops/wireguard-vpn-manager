@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  wireguard:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    container_name: wireguard-dev
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tashkent
+      - SERVERURL=localhost
+      - SERVERPORT=51820
+      - PEERS=3
+      - PEERDNS=8.8.8.8,8.8.4.4
+      - INTERNAL_SUBNET=10.0.0.0
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - ./wireguard-config:/config
+      - /lib/modules:/lib/modules:ro
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - vpn-network
+    restart: unless-stopped
+
+  wg-ui:
+    image: ngoduykhanh/wg-gen-web:latest
+    container_name: wg-ui-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - WG_CONF_DIR=/etc/wireguard
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    volumes:
+      - ./wireguard-config:/etc/wireguard
+    depends_on:
+      - wireguard
+    networks:
+      - vpn-network
+    restart: unless-stopped
+
+networks:
+  vpn-network:
+    driver: bridge

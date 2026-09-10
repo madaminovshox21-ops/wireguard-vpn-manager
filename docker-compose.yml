@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  wireguard:
+    image: linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tashkent
+      - SERVERURL=your-server-ip.com
+      - SERVERPORT=51820
+      - PEERS=5
+      - PEERDNS=8.8.8.8,8.8.4.4
+      - INTERNAL_SUBNET=10.0.0.0
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      - ./wireguard-config:/config
+      - /lib/modules:/lib/modules:ro
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+  # Web Management UI
+  wg-ui:
+    image: ngoduykhanh/wg-gen-web:latest
+    container_name: wg-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - WG_CONF_DIR=/etc/wireguard
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    volumes:
+      - ./wireguard-config:/etc/wireguard
+    depends_on:
+      - wireguard
+    restart: unless-stopped
+
+volumes:
+  wireguard-config:
